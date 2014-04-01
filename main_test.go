@@ -16,7 +16,6 @@ func TestReadLogLine(t *testing.T) {
 		t.Errorf("Parsing is broken with %s", err.Error())
 		t.FailNow()
 	}
-	t.Log("%v", notification)
 
 	if notification.Fields.Time[0] != "19:32:32" {
 		t.Errorf("wrong time read, expected 19:32:32 and got %s", notification.Fields.Time[0])
