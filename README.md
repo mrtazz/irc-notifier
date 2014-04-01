@@ -1,4 +1,4 @@
-# irc-notifier
+# irc-notifier [![Build Status](https://travis-ci.org/mrtazz/irc-notifier.svg?branch=master)](https://travis-ci.org/mrtazz/irc-notifier)
 
 ## Overview
 This is a small program to fetch my IRC notifications from Redis according to
