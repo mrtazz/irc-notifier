@@ -39,10 +39,10 @@ func main() {
 	flag.Parse()
 	var client *redis.Client
 
-	if (*host == "") {
-	  fmt.Println("You need to specify a host with --host")
-	  return
-  }
+	if *host == "" {
+		fmt.Println("You need to specify a host with --host")
+		return
+	}
 
 	client = redis.New()
 
@@ -88,7 +88,12 @@ func ParseLogLine(notification Notification) (Message, error) {
 	}()
 	split_source := strings.Split(notification.Source, "/")
 	split_source = strings.Split(split_source[len(split_source)-1], "_")
-	channel := strings.Join(split_source[1:len(split_source)-1], "-")
+	var channel string
+	if len(split_source) > 2 {
+		channel = strings.Join(split_source[1:len(split_source)-1], "-")
+	} else {
+		channel = ""
+	}
 	ret.Subtitle = fmt.Sprintf("%s in %s", notification.Fields.Sender[0], channel)
 	ret.Title = "Etsy IRC"
 	ret.Message = notification.Fields.Message[0]
