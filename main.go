@@ -7,6 +7,8 @@ import (
 	"github.com/deckarep/gosx-notifier"
 	"github.com/gosexy/redis"
 	"log"
+	"runtime"
+	"runtime/debug"
 	"strings"
 )
 
@@ -83,7 +85,11 @@ func ParseLogLine(notification Notification) (Message, error) {
 	var ret Message
 	defer func() {
 		if r := recover(); r != nil {
-			log.Fatalf("Recovered in %s", r)
+			_, file, line, _ := runtime.Caller(2)
+			log.Println(file)
+			log.Println(line)
+			log.Printf("Runtime panic: %v", r)
+			log.Printf("Stack: %s", debug.Stack())
 		}
 	}()
 	split_source := strings.Split(notification.Source, "/")
@@ -94,7 +100,9 @@ func ParseLogLine(notification Notification) (Message, error) {
 	} else {
 		channel = ""
 	}
-	ret.Subtitle = fmt.Sprintf("%s in %s", notification.Fields.Sender[0], channel)
+	if len(notification.Fields.Sender) > 0 {
+		ret.Subtitle = fmt.Sprintf("%s in %s", notification.Fields.Sender[0], channel)
+	}
 	ret.Title = "Etsy IRC"
 	ret.Message = notification.Fields.Message[0]
 	return ret, nil
