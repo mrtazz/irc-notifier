@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/deckarep/gosx-notifier"
 	"github.com/gosexy/redis"
+	"github.com/rakyll/globalconf"
 	"log"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -34,11 +36,30 @@ type Message struct {
 }
 
 func main() {
-	host := flag.String("h", "", "the redis host")
-	port := flag.Int("p", 6379, "the redis port")
-	auth := flag.String("a", "", "the auth key if set")
+	var (
+		host      = flag.String("host", "", "the redis host")
+		port      = flag.Int("port", 6379, "the redis port")
+		auth      = flag.String("auth", "", "the auth key if set")
+		appIcon   = flag.String("icon", "", "path to the app icon")
+		show_help = flag.Bool("help", false, "show help")
+	)
+
+	conf, _ := globalconf.New("irc-notifier")
+	conf.ParseAll()
+
+	if *show_help {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "usage: irc-notifier\n")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
 	flag.Parse()
+
 	var client *redis.Client
 
 	if *host == "" {
@@ -74,7 +95,7 @@ func main() {
 				log.Printf("%s", err.Error())
 			}
 			msg, _ := ParseLogLine(notification)
-			go Notify(msg.Message, msg.Title, msg.Subtitle)
+			go Notify(msg.Message, msg.Title, msg.Subtitle, *appIcon)
 		}
 	}
 
@@ -104,21 +125,33 @@ func ParseLogLine(notification Notification) (Message, error) {
 		ret.Subtitle = fmt.Sprintf("%s in %s", notification.Fields.Sender[0], channel)
 	}
 	ret.Title = "Etsy IRC"
-	ret.Message = notification.Fields.Message[0]
+	if len(notification.Fields.Message) > 0 {
+		ret.Message = notification.Fields.Message[0]
+	} else {
+		log.Printf("Empty message found for %v.", notification.Fields.Message)
+		ret.Message = ""
+	}
 	return ret, nil
 }
 
-func Notify(message string, title string, subtitle string) error {
+func Notify(message string, title string, subtitle string, icon string) error {
 	//At a minimum specifiy a message to display to end-user.
 	note := gosxnotifier.NewNotification(message)
 	note.Group = "com.github.mrtazz.ircnotifier"
-	note.Sender = "net.limechat.LimeChat"
 
 	//Optionally, set a title
 	note.Title = title
 
 	//Optionally, set a subtitle
 	note.Subtitle = subtitle
+
+	// set icon if we didn't get an empty string for it
+	if icon != "" {
+		note.AppIcon = icon
+		note.ContentImage = icon
+	} else {
+		note.Sender = "net.limechat.LimeChat"
+	}
 
 	//Then, push the notification
 	err := note.Push()
