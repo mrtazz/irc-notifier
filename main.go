@@ -84,6 +84,11 @@ func main() {
 		}
 	}
 
+	var notificationChannel chan Message
+
+	notificationChannel = make(chan Message, 10)
+	go NotifyWorker(notificationChannel, *appIcon)
+
 	for {
 		raw_notification, err := client.BLPop(1000, "notifications")
 		if err != nil {
@@ -95,7 +100,9 @@ func main() {
 				log.Printf("%s", err.Error())
 			}
 			msg, _ := ParseLogLine(notification)
-			go Notify(msg.Message, msg.Title, msg.Subtitle, *appIcon)
+
+			notificationChannel <- msg
+
 		}
 	}
 
@@ -132,6 +139,13 @@ func ParseLogLine(notification Notification) (Message, error) {
 		ret.Message = ""
 	}
 	return ret, nil
+}
+
+func NotifyWorker(notificationChannel chan Message, icon string) {
+	select {
+	case msg := <-notificationChannel:
+		Notify(msg.Message, msg.Title, msg.Subtitle, icon)
+	}
 }
 
 func Notify(message string, title string, subtitle string, icon string) error {
